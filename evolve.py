@@ -64,7 +64,7 @@ def main():
 
     print("✅ Swapped weights (zeroed) into the SGLang engine on GPU0.")
     prompts = [
-    "Hello, my name is",
+    "W",
     "The president of the United States is",
     "The capital of France is",
     "The future of AI is",
