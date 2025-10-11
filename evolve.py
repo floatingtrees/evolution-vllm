@@ -114,7 +114,7 @@ def main(dataset_path):
             reward = correct_answers / len(outputs)
             rewards.append(reward)
         reward_mean = statistics.mean(rewards)
-        reward_std = statistics.stdev(rewards)
+        reward_std = statistics.stdev(rewards) + 1e-8
         for element in rewards:
             advantages.append((element - reward_mean) / reward_std)
         engine.shutdown()
@@ -127,6 +127,7 @@ def main(dataset_path):
         total_params2 = list(model.state_dict().items())
         for i in range(len(total_params2)):
             assert total_params2[i][0] == total_params[i][0], f"{total_params2[i][0]}, {total_params[i][0]}"
+            assert total_params2[i][1].shape == total_params[i][1].shape, f"{total_params2[i][1].shape}, {total_params[i][1].shape}"
         
         for i, (name, t) in enumerate(total_params2):
             noise_sum_accumulator = torch.zeros(t.shape, device = "cuda:0", dtype = DTYPE)
@@ -141,12 +142,7 @@ def main(dataset_path):
             t.add_(alpha / total_species + noise_sum_accumulator)
             if i % max(len(total_params2) // 10, 1) == 0 or i == len(total_params2) - 1:
                 clear_vram()
-        
-        
-        
-        clear_vram()
         print("DONE")
-        time.sleep(100)
         
 if __name__ == "__main__":
     dataset_path = "demo_dataset.json"
