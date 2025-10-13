@@ -139,7 +139,7 @@ def main(dataset_path):
                 
                 noise_tensor = torch.randn(t.shape, device = "cuda:0", generator = gpu_generator, dtype = DTYPE)
                 if i == len(total_params) - 1 and VERIFY_DETERMINISM:
-                    torch.save(noise_tensor, f"saves1_{species_idx}_{name}.pt")
+                    torch.save(noise_tensor, f"tests/saves1_{species_idx}_{name}.pt")
                 named.append((name, t.to("cuda:0", non_blocking=True).add_(sigma * noise_tensor)))
                 
                 if i % max(len(total_params) // 10, 1) == 0 or i == len(total_params) - 1:
