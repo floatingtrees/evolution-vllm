@@ -62,7 +62,7 @@ def update_weights(model, total_params, generators, advantages, total_species):
             noise_sum_accumulator += noise_buffer * advantage
 
             if i == len(total_params2) - 1 and VERIFY_DETERMINISM:
-                torch.save(noise_buffer, f"saves2_{species_idx}_{name}.pt")
+                torch.save(noise_buffer, f"tests/saves2_{species_idx}_{name}.pt")
         t.add_(alpha / total_species * noise_sum_accumulator)
         if i % max(len(total_params2) // 10, 1) == 0 or i == len(total_params2) - 1:
             del noise_sum_accumulator
