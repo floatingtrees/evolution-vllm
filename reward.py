@@ -1,7 +1,8 @@
 import re
 from pathlib import Path
 def ensure_dir_recursive(path: str) -> None:
-    Path(path).mkdir(parents=True, exist_ok=True)
+    dir_path = Path(path).parent 
+    dir_path.mkdir(parents=True, exist_ok=True)
     
 def find_boxed_x(string: str):
     # Get numbers in \\boxed{}, and strip commas
