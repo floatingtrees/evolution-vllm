@@ -28,4 +28,4 @@ This repository is significantly better for single GPU usage compared to the rep
 All data is stored as a list of samples, where each sample is a dictionary with a question and answer. The reward function is implemented in reward.py and easily customizable. Training can be easily modified by the configuration file in conf/config.yaml. 
 
 # Other Notes
-- If there are any bugs, please open an issue or a pull request. 
+- If there are any bugs, please open an issue. 
