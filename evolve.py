@@ -10,17 +10,29 @@ from random import randint
 import time
 import sys
 import statistics
+from reward import compute_reward
+from config_parser import load_config
+
+conf = load_config("conf/config.yaml")
+sigma = conf.hyperparams.sigma
+alpha = sigma / 2
+model_save_path = conf.saves.save_path
+LOG_PATH = conf.logging.logs_save_path
+MODEL = conf.model
+engine_mem_fraction = conf.sampling.engine_mem_fraction
+sampling_params = {"temperature": conf.sampling.temperature, "top_p": conf.sampling.top_p, 
+                   "max_new_tokens": conf.sampling.max_new_tokens}
+num_iterations = conf.hyperparams.epochs
+total_species = conf.hyperparams.total_species
+
+VERIFY_DETERMINISM = False
+if conf.dtype != "bfloat16":
+    raise ValueError("Only currently supported dtype is bfloat16")
+dataset_path = conf.data_path
+DTYPE = torch.bfloat16
 
 from typing import Optional, Tuple
 
-def find_boxed_x(string: str) -> Tuple[Optional[str], int]:
-    # Match \boxed{ ... } with an integer that may contain commas, e.g. -1,234,567
-    matches = re.findall(r'\\boxed\{\s*(-?\d{1,3}(?:,\d{3})*|\-?\d+)\s*\}', string)
-    # Strip commas from each match
-    cleaned = [m.replace(",", "") for m in matches]
-    x = cleaned[-1] if cleaned else None
-    penalty = 2 if len(matches) >= 2 else 1
-    return x, penalty
 
 
 def clear_vram():
@@ -29,24 +41,14 @@ def clear_vram():
     torch.cuda.ipc_collect()
     torch.cuda.synchronize()
 
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
 
 
-sigma = 0.001
-alpha = sigma / 2
-VERIFY_DETERMINISM = False
 
-MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
-DTYPE = torch.bfloat16  # use bf16 if your GPU supports it; else torch.float16
-
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
-
-
-sampling_params = {"temperature": 0.8, "top_p": 0.95, "max_new_tokens": 1024}
-num_iterations = 1000
-total_species = 20
 
 def update_weights(model, total_params, generators, advantages, total_species):
     model.to("cuda:0")
+    clear_vram()
     total_params2 = list(model.state_dict().items())
     for i in range(len(total_params2)):
         assert total_params2[i][0] == total_params[i][0], f"{total_params2[i][0]}, {total_params[i][0]}"
@@ -94,7 +96,7 @@ def main(dataset_path):
             model_path=MODEL,
             random_seed=42,
             base_gpu_id=0,
-            mem_fraction_static=0.75,
+            mem_fraction_static=engine_mem_fraction,
         )
         total_params = list(model.state_dict().items())
         named = []
@@ -108,7 +110,15 @@ def main(dataset_path):
                 
                 clear_vram()
         
-        
+        outputs = engine.generate(prompts, sampling_params)
+        rewards = []
+        base_model_reward_list = []
+        for i in range(len(outputs)):
+            output = outputs[i]["text"]
+            sample_reward = compute_reward(output, answers[i], LOG_PATH)
+            base_model_reward_list.append(sample_reward)
+        base_model_reward = statistics.mean(base_model_reward_list)
+        print("Mean Reward without noise: ", round(base_model_reward, 3))
         generator_seeds = []
         rewards = []
         advantages = []
@@ -136,25 +146,16 @@ def main(dataset_path):
                     clear_vram()
                 
             outputs = engine.generate(prompts, sampling_params)
-            correct_answers = 0
+            noise_model_reward_list = []
             for i in range(len(outputs)):
-                output = outputs[i]
-                
-                answer, penalty = find_boxed_x(output["text"])
-                if answer is None:
-                    answer = ""
-                
-                if answer.strip() == str(answers[i]).strip():
-                    correct_answers += 1
-                if i == len(outputs) - 1:
-                    print(output["text"])
-                    print(answers[i])
-                    print(answer)
-            reward = correct_answers / len(outputs)
-            rewards.append(reward)
+                output = outputs[i]["text"]
+                sample_reward = compute_reward(output, answers[i], LOG_PATH)
+                noise_model_reward_list.append(sample_reward)
+            noise_model_reward = statistics.mean(noise_model_reward_list)
+            rewards.append(noise_model_reward)
         reward_mean = statistics.mean(rewards)
         reward_std = statistics.stdev(rewards) + 1e-8
-        print("Mean Accuracy: ", reward_mean)
+        print("Mean reward after noise: ", round(reward_mean, 3))
         sys.stdout.flush()
         for element in rewards:
             advantages.append((element - reward_mean) / reward_std)
@@ -166,9 +167,12 @@ def main(dataset_path):
             generators.append(torch.Generator(device="cuda:0").manual_seed(seed))
         clear_vram()
         update_weights(model, total_params, generators, advantages, total_species)
+        if iteration % 50 == 0:
+            save_dir = f"{model_save_path}/{iteration}"
+            model.save_pretrained(save_dir)
+            tokenizer.save_pretrained(save_dir)
         
 if __name__ == "__main__":
-    dataset_path = "demo_dataset.json"
     if torch.cuda.device_count() < 1:
         raise SystemExit("Need at least one CUDA device.")
     with torch.no_grad():
