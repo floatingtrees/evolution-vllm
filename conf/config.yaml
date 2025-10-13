@@ -1,6 +1,6 @@
 model: "Qwen/Qwen2.5-7B-Instruct"
 dtype: "bfloat16" # Currently only supported dtype
-data_path: "data/demo_dataset.json"
+data_path: "data/demo_dataset.json" 
 hyperparams:
   sigma: 0.001 # Standard deviation of the noise
   total_species: 10 # Number of noised models sampled per step, corresponds to N from the paper
@@ -9,8 +9,8 @@ sampling:
   temperature: 0.6
   top_p: 0.95
   max_new_tokens: 1024
-  engine_mem_fraction: 0.75
+  engine_mem_fraction: 0.75 # Keep this at 0.75 unless you want to really optimize performance 
 saves:
-  save_path: "./saves/model"
+  save_path: "./saves"
 logging: 
   logs_save_path: "logs/model_outputs.txt" # Set to None if you don't want logging

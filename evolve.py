@@ -12,6 +12,7 @@ import sys
 import statistics
 from reward import compute_reward
 from config_parser import load_config
+from pathlib import Path
 
 conf = load_config("conf/config.yaml")
 sigma = conf.hyperparams.sigma
@@ -40,6 +41,9 @@ def clear_vram():
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     torch.cuda.synchronize()
+    
+def ensure_dir_recursive(path: str) -> None:
+    Path(path).mkdir(parents=True, exist_ok=True)
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
 
@@ -168,7 +172,8 @@ def main(dataset_path):
         clear_vram()
         update_weights(model, total_params, generators, advantages, total_species)
         if iteration % 50 == 0:
-            save_dir = f"{model_save_path}/{iteration}"
+            ensure_dir_recursive(model_save_path)
+            save_dir = f"{model_save_path}/model{iteration}"
             model.save_pretrained(save_dir)
             tokenizer.save_pretrained(save_dir)
         

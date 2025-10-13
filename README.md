@@ -5,7 +5,7 @@ Implementation of the algorithms in [Evolution Strategies at Scale: LLM Fine-Tun
 The default code from the paper uses Huggingface's Transformers Library, which has a slow and unoptimized generate function. SGLang's generation speed is around 4 times faster for large batch sizes.
 
 # Quickstart: 
-
+The following commands trains Qwen2.5-7B-Instruct to perform 4 digit multiplication. 
 ```
 python -m venv venv
 source venv/bin/activate
@@ -17,6 +17,15 @@ python evolve.py
 # Features
 This repository is significantly better for single GPU usage compared to the repository linked in the paper. Some reasons why you might want to use this repository are below. 
 - Using SGLang improves inference speed by roughly 4 times. 
-- The inference engine stays initialized when evaluating different models, so we don't have wait for startup time. 
-- Evolutionary algorithms don't require gradients, so you can full-rank fine-tune a 7B model on a card with 24GB of VRAM (RTX 3090 or RTX 4090)
-- Evolutionary algorithms are less prone to reward hacking and converge better, as observed in [this paper](https://arxiv.org/pdf/2509.24372)
+- The inference engine remains initialized across model evaluations, eliminating repeated startup overhead.
+- Evolutionary algorithms don't require gradients, so you can full-rank fine-tune a 7B model on a card with 24GB of VRAM (RTX 3090 or RTX 4090). 
+- Evolutionary algorithms are less prone to reward hacking and often perform better than RL, as observed in [this paper](https://arxiv.org/pdf/2509.24372). 
+- Evolutionary algorithms are less sensitive to hyperparameters. 
+- Evolutionary algorithms don't use a KL divergence term, so there's no need to store a copy of the base model. 
+- We provide a straightforward configuration file and easily customizable reward function that you can use with any task. 
+
+# Code Structure
+All data is stored as a list of samples, where each sample is a dictionary with a question and answer. The reward function is implemented in reward.py and easily customizable. Training can be easily modified by the configuration file in conf/config.yaml. 
+
+# Other Notes
+- If there are any bugs, please open an issue or a pull request. 
