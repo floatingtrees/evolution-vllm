@@ -7,8 +7,6 @@ The default code from the paper uses Huggingface's Transformers Library, which h
 # Quickstart: 
 The following commands trains Qwen2.5-7B-Instruct to perform 4 digit multiplication. 
 ```
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 python generate_dataset.py
 python evolve.py
@@ -29,3 +27,4 @@ All data is stored as a list of samples, where each sample is a dictionary with 
 
 # Other Notes
 - If there are any bugs, please open an issue. 
+- Tested with Python 3.10
