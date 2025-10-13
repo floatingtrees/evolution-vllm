@@ -1,5 +1,8 @@
 import re
-
+from pathlib import Path
+def ensure_dir_recursive(path: str) -> None:
+    Path(path).mkdir(parents=True, exist_ok=True)
+    
 def find_boxed_x(string: str):
     # Get numbers in \\boxed{}, and strip commas
     matches = re.findall(r'\\boxed\{\s*(-?\d{1,3}(?:,\d{3})*|\-?\d+)\s*\}', string)
@@ -21,6 +24,7 @@ def compute_reward(response_text: str, ground_truth: str, log_path):
     if answer is None:
         answer = ""
     if log_path is not None:
+        ensure_dir_recursive(log_path)
         with open(log_path, "a") as file:
             file.write(f"Model Response: {response_text} \nActual Answer: {ground_truth} \nDetected Answer: {answer}\n\n")
     if answer.strip() == str(ground_truth).strip():
